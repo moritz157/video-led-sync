@@ -17,14 +17,24 @@ class ConfigPage extends StatelessWidget {
     return Container(
         padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 20),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                    margin: const EdgeInsets.only(top: 15),
+                    child: Text(
+                      "Video LED-Sync",
+                      style: CupertinoTheme.of(context).textTheme.navLargeTitleTextStyle,
+                    )),
+                CupertinoButton.filled(onPressed: file != null ? () => onVideoStart() : null, child: const Text("Video starten")),
+              ],
+            ),
             Container(
                 margin: const EdgeInsets.only(top: 15),
-                child: Text(
-                  "Video LED-Sync",
-                  style: CupertinoTheme.of(context).textTheme.navLargeTitleTextStyle,
-                )),
+                child: Text("Dateien", style: CupertinoTheme.of(context).textTheme.navTitleTextStyle)),
             CupertinoButton(
                 child: Row(children: [
                   Container(margin: const EdgeInsets.only(right: 10), child: const Icon(CupertinoIcons.folder_open)),
@@ -34,8 +44,7 @@ class ConfigPage extends StatelessWidget {
                   final result = await FilePicker.platform.pickFiles(initialDirectory: file?.path);
                   onFilePicked(result != null ? File(result.files.single.path!) : file);
                 }),
-            // EspAddressInput()
-            CupertinoButton.filled(child: const Text("Video starten"), onPressed: file != null ? () => onVideoStart() : null)
+            EspAddressInput(),
           ],
         ));
   }

@@ -43,8 +43,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-
-    channel = WebSocketChannel.connect(Uri.parse("ws://192.168.179.40:81"));
+    // channel = WebSocketChannel.connect(Uri.parse("ws://192.168.179.40:81"));
   }
 
   Future<void> sendVideoPosition(Duration? duration) async {
