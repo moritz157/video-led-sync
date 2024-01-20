@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_libserialport/flutter_libserialport.dart';
 import 'package:video_led_sync/config_page.dart';
+import 'package:video_led_sync/esp_address_input.dart';
 import 'package:video_led_sync/video_player.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:fvp/fvp.dart';
@@ -37,8 +40,10 @@ class _MyHomePageState extends State<MyHomePage> {
   bool isFullscreen = false;
   File? videoFile;
   bool showVideoPlayer = false;
+  DiscoveredDevice? selectedDevice;
 
-  late WebSocketChannel channel;
+  WebSocketChannel? websocketChannel;
+  SerialPort? serialPort;
 
   @override
   void initState() {
@@ -47,10 +52,18 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> sendVideoPosition(Duration? duration) async {
-    await channel.ready;
+    if (selectedDevice == null) return;
 
-    final List<int> data2 = [255, (((duration?.inMilliseconds ?? 0) % 4200) / 4200 * 255).round(), 0, 42];
-    channel.sink.add(data2);
+    final List<int> data = [255, (((duration?.inMilliseconds ?? 0) % 4200) / 4200 * 255).round(), 0, 42];
+    if (websocketChannel != null) {
+      await websocketChannel!.ready;
+
+      websocketChannel!.sink.add(data);
+    }
+
+    if (serialPort != null) {
+      serialPort!.write(Uint8List.fromList(data));
+    }
   }
 
   @override
@@ -66,11 +79,32 @@ class _MyHomePageState extends State<MyHomePage> {
               )
             : ConfigPage(
                 file: videoFile,
+                initialDevice: selectedDevice,
                 onFilePicked: (filePicked) => setState(() {
                   videoFile = filePicked;
                 }),
                 onVideoStart: () => setState(() {
                   showVideoPlayer = true;
+                }),
+                onDeviceSelected: (device) => setState(() {
+                  websocketChannel = null;
+                  serialPort?.close();
+                  serialPort?.dispose();
+                  serialPort = null;
+
+                  selectedDevice = device;
+                  if (device != null && device.type == DeviceConnectionType.usb) {
+                    print("USB: ${device.usbPort}");
+                    // final config = SerialPortConfig()..baudRate = 115200;
+                    serialPort = SerialPort(device.usbPort!);
+
+                    final opened = serialPort!.openWrite();
+                    print("serial port ${device.usbPort} opened: $opened");
+                    // serialPort!.config = config;
+                  }
+                  if (device != null && device.type == DeviceConnectionType.wifi) {
+                    websocketChannel = WebSocketChannel.connect(Uri.parse("ws://${device.ipAddress!.address}:81"));
+                  }
                 }),
               ));
   }

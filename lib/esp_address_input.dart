@@ -1,10 +1,14 @@
 import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_libserialport/flutter_libserialport.dart';
 import 'package:multicast_dns/multicast_dns.dart';
 
 class EspAddressInput extends StatefulWidget {
-  const EspAddressInput({super.key});
+  final DiscoveredDevice? initialDevice;
+  final void Function(DiscoveredDevice? device) onDeviceSelected;
+
+  const EspAddressInput({super.key, required this.onDeviceSelected, this.initialDevice});
 
   @override
   State<StatefulWidget> createState() => _EspAddressInputState();
@@ -14,9 +18,11 @@ class _EspAddressInputState extends State<EspAddressInput> {
   final textController = TextEditingController();
   List<DiscoveredDevice> availableDevices = [];
   bool scanning = false;
+  DiscoveredDevice? selectedDevice;
 
   @override
   void initState() {
+    selectedDevice = widget.initialDevice;
     findDevices();
     super.initState();
   }
@@ -24,22 +30,26 @@ class _EspAddressInputState extends State<EspAddressInput> {
   Future<void> findDevices() async {
     setState(() {
       scanning = true;
+      availableDevices = [];
+      availableDevices = [
+        ...availableDevices,
+        ...SerialPort.availablePorts
+            .map((p) => SerialPort(p))
+            .where((p) => (p.description ?? "").contains("CP2102"))
+            .map((p) => DiscoveredDevice(p.description ?? "USB-Device", DeviceConnectionType.usb, usbPort: p.name))
+            .toList()
+      ];
+      print(availableDevices);
     });
+
+    // --- WIFI ---
     const String name = '_videoledsync._tcp.local';
     final MDnsClient client = MDnsClient();
-    availableDevices = [];
-    // Start the client with default options.
     await client.start();
 
-    // Get the PTR record for the service.
     await for (final PtrResourceRecord ptr in client.lookup<PtrResourceRecord>(ResourceRecordQuery.serverPointer(name))) {
-      // Use the domainName from the PTR record to get the SRV record,
-      // which will have the port and local hostname.
-      // Note that duplicate messages may come through, especially if any
-      // other mDNS queries are running elsewhere on the machine.
       await for (final SrvResourceRecord srv in client.lookup<SrvResourceRecord>(ResourceRecordQuery.service(ptr.domainName))) {
-        // Domain name will be something like "io.flutter.example@some-iphone.local._dartobservatory._tcp.local"
-        final String bundleId = ptr.domainName; //.substring(0, ptr.domainName.indexOf('@'));
+        final String bundleId = ptr.domainName;
         print('Dart observatory instance found at '
             '${srv.target}:${srv.port} for "$bundleId".');
 
@@ -47,9 +57,9 @@ class _EspAddressInputState extends State<EspAddressInput> {
         await for (final IPAddressResourceRecord ip
             in client.lookup<IPAddressResourceRecord>(ResourceRecordQuery.addressIPv4(srv.target))) {
           print('IP: ${ip.address.toString()}');
-          if (availableDevices.indexWhere((d) => d.ipAddress.address == ip.address.address) == -1) {
+          if (availableDevices.indexWhere((d) => d.ipAddress?.address == ip.address.address) == -1) {
             setState(() {
-              availableDevices.add(DiscoveredDevice(srv.name.split(".")[0], ip.address));
+              availableDevices.add(DiscoveredDevice(srv.name.split(".")[0], DeviceConnectionType.wifi, ipAddress: ip.address));
             });
           }
         }
@@ -60,7 +70,13 @@ class _EspAddressInputState extends State<EspAddressInput> {
       scanning = false;
     });
 
-    print('Done.');
+    print('Done. $availableDevices');
+
+    print("Initial device: $selectedDevice");
+  }
+
+  isSelected(DiscoveredDevice d) {
+    return selectedDevice != null && d.type == selectedDevice!.type && d.name == selectedDevice!.name;
   }
 
   @override
@@ -78,8 +94,19 @@ class _EspAddressInputState extends State<EspAddressInput> {
         ...availableDevices
             .map((e) => CupertinoListTile(
                   title: Text(e.name),
-                  subtitle: Text(e.ipAddress.address),
-                  leading: Icon(CupertinoIcons.wifi),
+                  subtitle: Text(e.ipAddress?.address ?? e.usbPort ?? ""),
+                  leading: Icon(
+                    isSelected(e)
+                        ? CupertinoIcons.checkmark
+                        : (e.type == DeviceConnectionType.wifi ? CupertinoIcons.wifi : CupertinoIcons.bolt),
+                    color: isSelected(e) ? CupertinoColors.activeBlue : CupertinoColors.inactiveGray,
+                  ),
+                  onTap: () {
+                    widget.onDeviceSelected(isSelected(e) ? null : e);
+                    setState(() {
+                      selectedDevice = isSelected(e) ? null : e;
+                    });
+                  },
                 ))
             .toList()
       ],
@@ -89,7 +116,11 @@ class _EspAddressInputState extends State<EspAddressInput> {
 
 class DiscoveredDevice {
   final String name;
-  final InternetAddress ipAddress;
+  final DeviceConnectionType type;
+  final InternetAddress? ipAddress;
+  final String? usbPort;
 
-  const DiscoveredDevice(this.name, this.ipAddress);
+  const DiscoveredDevice(this.name, this.type, {this.ipAddress, this.usbPort});
 }
+
+enum DeviceConnectionType { wifi, usb }

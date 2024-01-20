@@ -9,8 +9,16 @@ class ConfigPage extends StatelessWidget {
   final File? file;
   final void Function(File? filePicked) onFilePicked;
   final void Function() onVideoStart;
+  final void Function(DiscoveredDevice? device) onDeviceSelected;
+  final DiscoveredDevice? initialDevice;
 
-  const ConfigPage({super.key, required this.onFilePicked, required this.file, required this.onVideoStart});
+  const ConfigPage(
+      {super.key,
+      required this.onFilePicked,
+      required this.file,
+      required this.onVideoStart,
+      required this.onDeviceSelected,
+      this.initialDevice});
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +52,10 @@ class ConfigPage extends StatelessWidget {
                   final result = await FilePicker.platform.pickFiles(initialDirectory: file?.path);
                   onFilePicked(result != null ? File(result.files.single.path!) : file);
                 }),
-            EspAddressInput(),
+            EspAddressInput(
+              initialDevice: initialDevice,
+              onDeviceSelected: onDeviceSelected,
+            ),
           ],
         ));
   }
