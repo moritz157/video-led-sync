@@ -6,6 +6,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
+import 'package:window_manager/window_manager.dart';
 
 class AppVideoPlayer extends StatefulWidget {
   final File file;
@@ -63,14 +64,15 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
           //   return KeyEventResult.handled;
           // },
           ),
-      onKey: (value) {
+      onKey: (value) async {
         if (value is! RawKeyUpEvent) return;
 
         if (value.logicalKey == LogicalKeyboardKey.escape) {
           widget.onExit();
         }
         if (value.logicalKey == LogicalKeyboardKey.f11) {
-          print("FULLSCREEN $value");
+          await windowManager
+              .setFullScreen(!(await windowManager.isFullScreen()));
           // SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: SystemUiOverlay.values);
         }
         if (value.logicalKey == LogicalKeyboardKey.space) {

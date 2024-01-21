@@ -11,7 +11,7 @@ import 'package:video_led_sync/video_player.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:fvp/fvp.dart';
 
-void main() {
+void main() async {
   registerWith();
   runApp(const MyApp());
 }
