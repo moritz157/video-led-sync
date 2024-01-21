@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_libserialport/flutter_libserialport.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_led_sync/config_page.dart';
 import 'package:video_led_sync/esp_address_input.dart';
 import 'package:video_led_sync/led_controller.dart';
@@ -55,7 +56,49 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void initState() {
+    loadStoredPreferences();
     super.initState();
+  }
+
+  loadStoredPreferences() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    setState(() {
+      options =
+          Options(showColorPreview: prefs.getBool("showColorPreview") ?? false);
+    });
+
+    if (prefs.containsKey("videoFilePath")) {
+      final file = File(prefs.getString("videoFilePath") ?? "");
+      if (await file.exists()) {
+        setState(() {
+          videoFile = file;
+        });
+      } else {
+        print("Could not read stored videoFile");
+        setState(() {
+          videoFile = null;
+        });
+
+        prefs.remove("videoFilePath");
+      }
+    }
+    if (prefs.containsKey("ledFilePath")) {
+      try {
+        final file = File(prefs.getString("ledFilePath") ?? "");
+        led = LedController.fromCSV(file);
+        setState(() {
+          ledFile = file;
+        });
+      } catch (e) {
+        print("Could not read stored ledFile");
+        setState(() {
+          ledFile = null;
+        });
+        led = null;
+        prefs.remove("ledFilePath");
+      }
+    }
   }
 
   Future<void> sendVideoPosition(Duration? duration) async {
@@ -132,21 +175,44 @@ class _MyHomePageState extends State<MyHomePage> {
               )
             : ConfigPage(
                 options: options,
-                onOptionsChanged: (options) => setState(() {
-                  this.options = options;
-                }),
+                onOptionsChanged: (options) async {
+                  setState(() {
+                    this.options = options;
+                  });
+                  final SharedPreferences prefs =
+                      await SharedPreferences.getInstance();
+                  prefs.setBool("showColorPreview", options.showColorPreview);
+                },
                 videoFile: videoFile,
-                onVideoFilePicked: (filePicked) => setState(() {
-                  videoFile = filePicked;
-                }),
+                onVideoFilePicked: (filePicked) async {
+                  setState(() {
+                    videoFile = filePicked;
+                  });
+                  final SharedPreferences prefs =
+                      await SharedPreferences.getInstance();
+                  if (filePicked != null) {
+                    prefs.setString("videoFilePath", filePicked.path);
+                  } else {
+                    prefs.remove("videoFilePath");
+                  }
+                },
                 onVideoStart: () => setState(() {
                   showVideoPlayer = true;
                 }),
                 ledFile: ledFile,
-                onLedFilePicked: (filePicked) => setState(() {
-                  ledFile = filePicked;
-                  loadNewLedFile(filePicked);
-                }),
+                onLedFilePicked: (filePicked) async {
+                  setState(() {
+                    ledFile = filePicked;
+                    loadNewLedFile(filePicked);
+                  });
+                  final SharedPreferences prefs =
+                      await SharedPreferences.getInstance();
+                  if (filePicked != null) {
+                    prefs.setString("ledFilePath", filePicked.path);
+                  } else {
+                    prefs.remove("ledFilePath");
+                  }
+                },
                 initialDevice: selectedDevice,
                 onDeviceSelected: (device) => setState(() {
                   websocketChannel = null;

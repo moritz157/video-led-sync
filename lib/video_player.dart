@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:chewie/chewie.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Theme, ThemeData;
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:window_manager/window_manager.dart';
@@ -34,14 +34,7 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
         setState(() {});
 
         Timer.periodic(const Duration(milliseconds: 10), (timer) async {
-          // if (isFullscreen != (document.fullscreenElement != null)) {
-          //   setState(() {
-          //     isFullscreen = document.fullscreenElement != null;
-          //   });
-          // }
           if (controller.value.isPlaying) {
-            // print(await _controller.position);
-            // sendVideoPosition(await _controller.position);
             widget.onVideoPosition(await controller.position);
           }
         });
@@ -58,12 +51,7 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
   @override
   Widget build(BuildContext context) {
     return RawKeyboardListener(
-      focusNode: FocusNode(
-          // onKeyEvent: (node, event) {
-          //   print("hello");
-          //   return KeyEventResult.handled;
-          // },
-          ),
+      focusNode: FocusNode(),
       onKey: (value) async {
         if (value is! RawKeyUpEvent) return;
 
@@ -73,10 +61,8 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
         if (value.logicalKey == LogicalKeyboardKey.f11) {
           await windowManager
               .setFullScreen(!(await windowManager.isFullScreen()));
-          // SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: SystemUiOverlay.values);
         }
         if (value.logicalKey == LogicalKeyboardKey.space) {
-          // print("PAUSE $value");
           if (chewieController.isPlaying) {
             chewieController.pause();
           } else {
@@ -94,21 +80,9 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
                         ThemeData.dark().copyWith(platform: TargetPlatform.iOS),
                     child: Chewie(
                       controller: chewieController,
-                    ))
-                // VideoPlayer(_controller),
-                )
+                    )))
             : Container(),
       ),
-      // floatingActionButton: FloatingActionButton(
-      //   onPressed: () {
-      //     setState(() {
-      //       _controller.value.isPlaying ? _controller.pause() : _controller.play();
-      //     });
-      //   },
-      //   child: Icon(
-      //     _controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
-      //   ),
-      // ),
     );
   }
 }
