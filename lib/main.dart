@@ -11,9 +11,12 @@ import 'package:video_led_sync/led_controller.dart';
 import 'package:video_led_sync/video_player.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:fvp/fvp.dart';
+import 'package:window_manager/window_manager.dart';
 
 void main() async {
   registerWith();
+  WidgetsFlutterBinding.ensureInitialized();
+  await windowManager.ensureInitialized();
   runApp(const MyApp());
 }
 
@@ -64,7 +67,8 @@ class _MyHomePageState extends State<MyHomePage> {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
 
     setState(() {
-      options = Options(showColorPreview: prefs.getBool("showColorPreview") ?? false);
+      options =
+          Options(showColorPreview: prefs.getBool("showColorPreview") ?? false);
     });
 
     if (prefs.containsKey("videoFilePath")) {
@@ -107,7 +111,8 @@ class _MyHomePageState extends State<MyHomePage> {
     final ledValues = led!.getCurrentValues(duration ?? Duration.zero);
 
     setState(() {
-      previewColor = Color.fromARGB(255, ledValues[0].r, ledValues[0].g, ledValues[0].b);
+      previewColor =
+          Color.fromARGB(255, ledValues[0].r, ledValues[0].g, ledValues[0].b);
     });
 
     if (selectedDevice == null) {
@@ -144,7 +149,8 @@ class _MyHomePageState extends State<MyHomePage> {
         context: context,
         builder: (context) => CupertinoAlertDialog(
           title: const Text("Fehler"),
-          content: const Text("Die Datei konnte nicht eingelesen werden. Bitte prüfe, ob du die richtige Datei ausgewählt hast"),
+          content: const Text(
+              "Die Datei konnte nicht eingelesen werden. Bitte prüfe, ob du die richtige Datei ausgewählt hast"),
           actions: [
             CupertinoButton(
               child: const Text("Okay"),
@@ -159,7 +165,11 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
-        backgroundColor: showVideoPlayer ? (options.showColorPreview ? previewColor : const Color(0xFF000000)) : const Color(0xFFFFFFFF),
+        backgroundColor: showVideoPlayer
+            ? (options.showColorPreview
+                ? previewColor
+                : const Color(0xFF000000))
+            : const Color(0xFFFFFFFF),
         child: showVideoPlayer
             ? AppVideoPlayer(
                 videoFile!,
@@ -174,7 +184,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   setState(() {
                     this.options = options;
                   });
-                  final SharedPreferences prefs = await SharedPreferences.getInstance();
+                  final SharedPreferences prefs =
+                      await SharedPreferences.getInstance();
                   prefs.setBool("showColorPreview", options.showColorPreview);
                 },
                 videoFile: videoFile,
@@ -182,7 +193,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   setState(() {
                     videoFile = filePicked;
                   });
-                  final SharedPreferences prefs = await SharedPreferences.getInstance();
+                  final SharedPreferences prefs =
+                      await SharedPreferences.getInstance();
                   if (filePicked != null) {
                     prefs.setString("videoFilePath", filePicked.path);
                   } else {
@@ -198,7 +210,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     ledFile = filePicked;
                     loadNewLedFile(filePicked);
                   });
-                  final SharedPreferences prefs = await SharedPreferences.getInstance();
+                  final SharedPreferences prefs =
+                      await SharedPreferences.getInstance();
                   if (filePicked != null) {
                     prefs.setString("ledFilePath", filePicked.path);
                   } else {
@@ -213,7 +226,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   serialPort = null;
 
                   selectedDevice = device;
-                  if (device != null && device.type == DeviceConnectionType.usb) {
+                  if (device != null &&
+                      device.type == DeviceConnectionType.usb) {
                     print("USB: ${device.usbPort}");
                     serialPort = SerialPort(device.usbPort!);
 
@@ -224,8 +238,10 @@ class _MyHomePageState extends State<MyHomePage> {
                     }
                     print("serial port ${device.usbPort} opened: $opened");
                   }
-                  if (device != null && device.type == DeviceConnectionType.wifi) {
-                    websocketChannel = WebSocketChannel.connect(Uri.parse("ws://${device.ipAddress!.address}:81"));
+                  if (device != null &&
+                      device.type == DeviceConnectionType.wifi) {
+                    websocketChannel = WebSocketChannel.connect(
+                        Uri.parse("ws://${device.ipAddress!.address}:81"));
                   }
                 }),
               ));
