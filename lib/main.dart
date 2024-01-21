@@ -51,8 +51,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Options options = const Options(showColorPreview: false);
   Color previewColor = const Color(0xFF000000);
 
-  LedController? led = LedController.fromCSV(File(
-      "/home/moritz/Entwicklung/video_led_sync/led_keyframes_example.csv"));
+  LedController? led;
 
   @override
   void initState() {
