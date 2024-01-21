@@ -23,7 +23,9 @@ WebSocketsServer webSocket = WebSocketsServer(81);
 #define NEOPIXEL_PIN 12
 #define NUMPIXELS 10
 
-
+#define R_PIN 14
+#define G_PIN 27
+#define B_PIN 26
 
 // #define AP_MODE
 
@@ -31,8 +33,8 @@ WebSocketsServer webSocket = WebSocketsServer(81);
   const char* ssid = "VideoLEDSync";
   const char* password = "videoledsync";
 #else
-  const char* ssid = "****";
-  const char* password = "*****";
+  const char* ssid = "WLAN-83D891";
+  const char* password = "2929207775404305";
 #endif
 
 // TCP server at port 80 will respond to HTTP requests
@@ -90,6 +92,9 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
                 Serial.print(" ");
                 Serial.println(blue);*/
 
+                analogWrite(R_PIN, red);
+                analogWrite(G_PIN, green);
+                analogWrite(B_PIN, blue);
                 for(int i=0; i<NUMPIXELS; i++) {
                   pixels.setPixelColor(i, pixels.Color(red, green, blue));
                 }
@@ -110,6 +115,8 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
 }
 
 void setup() {
+    pinMode(R_PIN, OUTPUT);
+  
     Serial.begin(115200);
 
     pixels.begin();
@@ -190,7 +197,10 @@ void serialEvent() {
         Serial.print(" ");
       }
       Serial.println();
-      
+
+      analogWrite(R_PIN, inputArray[0]);
+      analogWrite(G_PIN, inputArray[1]);
+      analogWrite(B_PIN, inputArray[2]);
       for(int i=0; i<NUMPIXELS; i++) {
         pixels.setPixelColor(i, pixels.Color(inputArray[0], inputArray[1], inputArray[2]));
       }

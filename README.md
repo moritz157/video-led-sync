@@ -1,16 +1,23 @@
 # video_led_sync
 
-A new Flutter project.
+A simple video player created with Flutter, that can read a video file (e.g. *.mp4) and a csv-file containing timestamped RGB keyframes and then sends the keyframes over USB-Serial/Websockets in sync with the video.
 
-## Getting Started
+## RGB-keyframes file
 
-This project is a starting point for a Flutter application.
+### Overview
+- no column titles
+- 4 columns
+    1. timestamp (more on that below)
+    2. R-value (8-bit, e.g. from 0 to 255)
+    3. G-value (8-bit, e.g. from 0 to 255)
+    4. B-value (8-bit, e.g. from 0 to 255)
+- 1 row per keyframe
+- video_led_sync interpolates linearly between all keyframes
 
-A few resources to get you started if this is your first Flutter project:
+### Timestamps
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+The timestamps can be provided in the following formats (leading zeros are optional for minutes and seconds):
+- `mm:ss` (minutes, seconds)
+- `mm:ss:s` (minutes, seconds and hundreds of milliseconds)
+- `mm:ss:ss` (minutes, seconds and tens of milliseconds)
+- `mm:ss:sss` (minutes, seconds and milliseconds)

@@ -6,6 +6,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_libserialport/flutter_libserialport.dart';
 import 'package:video_led_sync/config_page.dart';
 import 'package:video_led_sync/esp_address_input.dart';
+import 'package:video_led_sync/led_controller.dart';
 import 'package:video_led_sync/video_player.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:fvp/fvp.dart';
@@ -38,23 +39,40 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   bool isFullscreen = false;
-  File? videoFile;
   bool showVideoPlayer = false;
+
+  File? videoFile;
+  File? ledFile;
   DiscoveredDevice? selectedDevice;
 
   WebSocketChannel? websocketChannel;
   SerialPort? serialPort;
 
+  Options options = const Options(showColorPreview: false);
+  Color previewColor = const Color(0xFF000000);
+
+  LedController? led = LedController.fromCSV(File(
+      "/home/moritz/Entwicklung/video_led_sync/led_keyframes_example.csv"));
+
   @override
   void initState() {
     super.initState();
-    // channel = WebSocketChannel.connect(Uri.parse("ws://192.168.179.40:81"));
   }
 
   Future<void> sendVideoPosition(Duration? duration) async {
+    if (led == null) {
+      return;
+    }
+    final ledValues = led!.getCurrentValues(duration ?? Duration.zero);
+
+    setState(() {
+      previewColor =
+          Color.fromARGB(255, ledValues[0].r, ledValues[0].g, ledValues[0].b);
+    });
+
     if (selectedDevice == null) return;
 
-    final List<int> data = [255, (((duration?.inMilliseconds ?? 0) % 4200) / 4200 * 255).round(), 0, 42];
+    final List<int> data = [ledValues[0].r, ledValues[0].g, ledValues[0].b, 42];
     if (websocketChannel != null) {
       await websocketChannel!.ready;
 
@@ -66,9 +84,45 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  void loadNewLedFile(File? file) {
+    if (file == null) {
+      led = null;
+      return;
+    }
+
+    try {
+      led = LedController.fromCSV(file);
+    } catch (e) {
+      print(e);
+      setState(() {
+        ledFile = null;
+      });
+      led = null;
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: const Text("Fehler"),
+          content: const Text(
+              "Die Datei konnte nicht eingelesen werden. Bitte prüfe, ob du die richtige Datei ausgewählt hast"),
+          actions: [
+            CupertinoButton(
+              child: const Text("Okay"),
+              onPressed: () => Navigator.of(context).pop(),
+            )
+          ],
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
+        backgroundColor: showVideoPlayer
+            ? (options.showColorPreview
+                ? previewColor
+                : const Color(0xFF000000))
+            : const Color(0xFFFFFFFF),
         child: showVideoPlayer
             ? AppVideoPlayer(
                 videoFile!,
@@ -78,14 +132,23 @@ class _MyHomePageState extends State<MyHomePage> {
                 }),
               )
             : ConfigPage(
-                file: videoFile,
-                initialDevice: selectedDevice,
-                onFilePicked: (filePicked) => setState(() {
+                options: options,
+                onOptionsChanged: (options) => setState(() {
+                  this.options = options;
+                }),
+                videoFile: videoFile,
+                onVideoFilePicked: (filePicked) => setState(() {
                   videoFile = filePicked;
                 }),
                 onVideoStart: () => setState(() {
                   showVideoPlayer = true;
                 }),
+                ledFile: ledFile,
+                onLedFilePicked: (filePicked) => setState(() {
+                  ledFile = filePicked;
+                  loadNewLedFile(filePicked);
+                }),
+                initialDevice: selectedDevice,
                 onDeviceSelected: (device) => setState(() {
                   websocketChannel = null;
                   serialPort?.close();
@@ -93,17 +156,18 @@ class _MyHomePageState extends State<MyHomePage> {
                   serialPort = null;
 
                   selectedDevice = device;
-                  if (device != null && device.type == DeviceConnectionType.usb) {
+                  if (device != null &&
+                      device.type == DeviceConnectionType.usb) {
                     print("USB: ${device.usbPort}");
-                    // final config = SerialPortConfig()..baudRate = 115200;
                     serialPort = SerialPort(device.usbPort!);
 
                     final opened = serialPort!.openWrite();
                     print("serial port ${device.usbPort} opened: $opened");
-                    // serialPort!.config = config;
                   }
-                  if (device != null && device.type == DeviceConnectionType.wifi) {
-                    websocketChannel = WebSocketChannel.connect(Uri.parse("ws://${device.ipAddress!.address}:81"));
+                  if (device != null &&
+                      device.type == DeviceConnectionType.wifi) {
+                    websocketChannel = WebSocketChannel.connect(
+                        Uri.parse("ws://${device.ipAddress!.address}:81"));
                   }
                 }),
               ));

@@ -13,7 +13,8 @@ class AppVideoPlayer extends StatefulWidget {
   final void Function(Duration? position) onVideoPosition;
   final void Function() onExit;
 
-  const AppVideoPlayer(this.file, {super.key, required this.onVideoPosition, required this.onExit});
+  const AppVideoPlayer(this.file,
+      {super.key, required this.onVideoPosition, required this.onExit});
 
   @override
   State<StatefulWidget> createState() => _AppVideoPlayerState();
@@ -45,7 +46,11 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
         });
       })
       ..setLooping(true);
-    chewieController = ChewieController(videoPlayerController: controller, allowFullScreen: false, allowPlaybackSpeedChanging: false);
+    chewieController = ChewieController(
+        videoPlayerController: controller,
+        allowFullScreen: false,
+        allowPlaybackSpeedChanging: false,
+        looping: true);
     super.initState();
   }
 
@@ -66,7 +71,7 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
         }
         if (value.logicalKey == LogicalKeyboardKey.f11) {
           print("FULLSCREEN $value");
-          SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: SystemUiOverlay.values);
+          // SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: SystemUiOverlay.values);
         }
         if (value.logicalKey == LogicalKeyboardKey.space) {
           // print("PAUSE $value");
@@ -83,7 +88,8 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
             ? AspectRatio(
                 aspectRatio: controller.value.aspectRatio,
                 child: Theme(
-                    data: ThemeData.dark().copyWith(platform: TargetPlatform.iOS),
+                    data:
+                        ThemeData.dark().copyWith(platform: TargetPlatform.iOS),
                     child: Chewie(
                       controller: chewieController,
                     ))
